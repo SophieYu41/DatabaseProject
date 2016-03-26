@@ -2,17 +2,21 @@
 
 """
 Columbia W4111 Intro to databases
-Example webserver
+NAME: Yu Wang  Yuchen Shi
+UNI: yw2783 ys2784
 
-To run locally
+Project application:
+The project is an online bank application which supports operations like transfer, check statements, look up transactions, etc.
+It also supports administrative operations such as add an account in a specific branch. 
+This file is server file and mainly responsible for database connection and sql execution.
+
+How to run:
 
     python server.py
 
 Go to http://localhost:8111 in your browser
 
 
-A debugger such as "pdb" may be helpful for debugging.
-Read about it online.
 """
 
 import os
@@ -25,10 +29,6 @@ app = Flask(__name__, template_folder=tmpl_dir)
 
 
 #
-# The following uses the sqlite3 database test.db -- you can use this for debugging purposes
-# However for the project you will need to connect to your Part 2 database in order to use the
-# data
-#
 # XXX: The URI should be in the format of: 
 #
 #     postgresql://USER:PASSWORD@w4111db.eastus.cloudapp.azure.com/username
@@ -39,6 +39,7 @@ app = Flask(__name__, template_folder=tmpl_dir)
 #
 #DATABASEURI = "sqlite:///test.db"
 
+#Connect to our database build in project part 1 and 2
 DATABASEURI = "postgresql://ys2874:WHPMPK@w4111db.eastus.cloudapp.azure.com/ys2874"
 
 #
@@ -196,11 +197,23 @@ def add():
   return redirect('/')
 
 
-@app.route('/login')
+@app.route('/login', methods=['POST'])
 def login():
-    abort(401)
-    this_is_never_executed()
+    post_name = request.form['name']
+    post_password = request.form['password']
+    print "lalalala"
+    print post_name
+    print post_password
+    cursor = g.conn.execute("SELECT * FROM Customers WHERE name = %s", post_name)
+    print "HeyHeyHey"
+    print cursor
+    for result in cursor:
+      print result 
+    
 
+    # for result in cursor:
+    #   names.append(result[1])  # can also be accessed using result[0]
+    cursor.close()
 
 if __name__ == "__main__":
   import click
