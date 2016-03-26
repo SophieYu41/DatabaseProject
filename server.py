@@ -184,31 +184,38 @@ def index():
 # notice that the functio name is another() rather than index()
 # the functions for each app.route needs to have different names
 #
-@app.route('/another')
-def another():
-  return render_template("anotherfile.html")
+@app.route('/customer')
+def customer():
+  return render_template("customer.html")
+
+@app.route('/admin')
+def admin():
+  return render_template("admin.html")
 
 
 # Example of adding new data to the database
-@app.route('/add', methods=['POST'])
-def add():
-  name = request.form['name']
-  g.conn.execute('INSERT INTO test VALUES (NULL, ?)', name)
-  return redirect('/')
+#@app.route('/add', methods=['POST'])
+#def add():
+#  name = request.form['name']
+#  g.conn.execute('INSERT INTO test VALUES (NULL, ?)', name)
+#  return redirect('/')
 
-
+#User login validation
 @app.route('/login', methods=['POST'])
 def login():
     post_name = request.form['name']
     post_password = request.form['password']
-    print "lalalala"
     print post_name
     print post_password
-    cursor = g.conn.execute("SELECT * FROM Customers WHERE name = %s", post_name)
-    print "HeyHeyHey"
-    print cursor
-    for result in cursor:
-      print result 
+    password = g.conn.execute("SELECT password FROM Customers WHERE name = %s", post_name)
+    if password == post_password:
+	return render_template("customer.html")
+    else:
+	print 'Wrong Password'
+
+
+# Example of adding new data to the database
+#@
     
 
     # for result in cursor:
@@ -224,19 +231,9 @@ if __name__ == "__main__":
   @click.argument('HOST', default='0.0.0.0')
   @click.argument('PORT', default=8111, type=int)
   def run(debug, threaded, host, port):
-    """
-    This function handles command line parameters.
-    Run the server using
-
-        python server.py
-
-    Show the help text using
-
-        python server.py --help
-
-    """
 
     HOST, PORT = host, port
+    print "Banking Applicaion System"  
     print "running on %s:%d" % (HOST, PORT)
     app.run(host=HOST, port=PORT, debug=debug, threaded=threaded)
 
