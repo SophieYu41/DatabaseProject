@@ -33,7 +33,7 @@
       
       <header class="header dark-bg">
             <div class="toggle-nav">
-                <div class="icon-reorder tooltips" data-original-title="Toggle Navigation" data-placement="bottom"><i class="icon_menu"></i></div>
+                <div class="icon-reorder tooltips" data-original-title="Toggle Navigation" data-placement="bottom">
             </div>
 
             <!--logo start-->
@@ -50,7 +50,7 @@
               <!-- sidebar menu start-->
               <ul class="sidebar-menu">                
                   <li class="">
-                      <a class="" href="index.html">
+                      <a class="" href="branch.html">
                           <span>Branches</span>
                       </a>
                   </li>
@@ -131,7 +131,19 @@
 				</div>
 			</div>
               <!-- page start-->
-              Page content goes here
+              	<div class="form">
+    		<form class="login-form" method="POST" action="/branch_lookup">
+		<p>Branch ID: <input type="text" name="bid"> <input type="submit" value="Search"></p>	
+		<p>Branch NAME: <input type="text" name="bname"> <input type="submit" value="Search"></p>
+    		</form>
+  		</div>
+		  <div>{{data}}</div>
+
+  		<div>
+    		{% for n in data %}
+   		<div>{{n}}</div>
+   		{% endfor %}
+ 		 </div>
               <!-- page end-->
           </section>
       </section>

@@ -177,12 +177,6 @@ def index():
   return render_template("index.html", **context)
 
 #
-# This is an example of a different path.  You can see it at
-# 
-#     localhost:8111/another
-#
-# notice that the functio name is another() rather than index()
-# the functions for each app.route needs to have different names
 #
 @app.route('/customer')
 def customer():
@@ -192,6 +186,15 @@ def customer():
 def admin():
   return render_template("admin.html")
 
+@app.route('/branch_lookup', methods=['POST'])
+def add():
+  name = request.form['name']
+  cursor = g.conn.execute('select * from branch where name = %s or name like %s\%', name)
+  names = []
+  for result in cursor:
+    names.append(result[1])  # can also be accessed using result[0]
+  cursor.close()
+  return redirect('/')
 
 # Example of adding new data to the database
 #@app.route('/add', methods=['POST'])
@@ -205,22 +208,24 @@ def admin():
 def login():
     post_name = request.form['name']
     post_password = request.form['password']
-    print post_name
-    print post_password
-    password = g.conn.execute("SELECT password FROM Customers WHERE name = %s", post_name)
+    print 'User Login' + post_name
+    cursor = g.conn.execute("SELECT password FROM Customers WHERE name = %s", post_name)
+    for result in cursor:
+	password = result[0].strip()
+    print password == post_password
     if password == post_password:
-	return render_template("customer.html")
+	# check whether the user is admin user/customer user and 
+	# redirect to different pages
+	if post_name == 'admin':
+		return redirect("/admin")
+	else:
+    		return redirect("/customer")
     else:
 	print 'Wrong Password'
+    cursor.close();
 
 
-# Example of adding new data to the database
-#@
-    
-
-    # for result in cursor:
-    #   names.append(result[1])  # can also be accessed using result[0]
-    cursor.close()
+# Main funciton
 
 if __name__ == "__main__":
   import click
