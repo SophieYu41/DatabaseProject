@@ -1,0 +1,56 @@
+{% extends "admin_layout.html" %}
+{% block body %}
+<div class="input-group">
+  <span class="input-group-addon">Cid:</span>
+  <input type="text" class="form-control" id="cid">
+</div>
+<div class="input-group">
+  <span class="input-group-addon">Name:</span>
+  <input type="text" class="form-control" id="name">
+</div>
+<div class="input-group">
+  <span class="input-group-addon">Email:</span>
+  <input type="text" class="form-control"  id="email">
+</div>
+<div class="input-group">
+  <span class="input-group-addon">Phone:</span>
+  <input type="text" class="form-control" id="phone">
+</div>
+<div class="input-group">
+  <span class="input-group-addon">Ssn:</span>
+  <input type="text" class="form-control" id="ssn">
+</div>
+<div class="input-group">
+  <span class="input-group-addon">Password:</span>
+  <input type="text" class="form-control"  id="password">
+</div>
+<div>
+  <span class="input-group-btn">
+     <button class="btn btn-default" type="button" id='gobutton'>Add New</button>
+  </span>
+</div>
+
+<script type"text/javascript">
+    $(function () {
+        $("#gobutton").click(function(e) {
+            var cid_value = $('#cid').val()
+            var name_value = $('#name').val()
+            var email_value = $('#email').val()
+            var phone_value = $('#phone').val()
+            var ssn_value = $('#ssn').val()
+            var password_value = $('#password').val()
+            $.ajax({'url':'/addcustomer', data:{cid:cid_value, name:name_value, email:email_value, phone:phone_value, ssn:ssn_value, password:password_value}, type:"POST", dataType:'json', success: function(data){
+                if (data.ec == 200){
+                    alert('save ok');
+                }
+                else {
+                    var res = data.ec + ':' + data.em;
+                    alert(res)
+                }
+            }});
+        });
+    });
+</script>
+
+{% endblock %}
+

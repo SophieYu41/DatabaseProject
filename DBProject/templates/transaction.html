@@ -1,0 +1,51 @@
+{% extends "admin_layout.html" %}
+{% block body %}
+<div>
+    <label for="from">From</label>
+    <input type="text" id="from" name="from" placeholder="YYYY-mm-dd eg.2016-02-03">
+    <label for="to">To</label>
+    <input type="text" id="to" name="to" placeholder="YYYY-mm-dd eg.2016-02-03">
+    <label for="type">Type</label>
+    <input type="text" id="type" name="type" placeholder="(ATM,purchase,transfer)">
+    <button type="button" class"btn btn-primary" id="querybutton" data-toggle="button" aria-pressed="false" autocomplete="off">
+    Query
+    </button
+</div>
+<div id="tablediv">
+</div>
+<script type="text/javascript">
+  $(function() {
+    $("#querybutton").click(function(e) {
+        var date_beg = $("#from").val()
+        var date_end = $("#to").val()
+        var type_value = $("#type").val()
+        $.ajax({url:'/transaction_lookup', data:{from:date_beg, to:date_end, type:type_value}, type:"POST", dataType:'json', success:function(data){
+                if (data.ec == 200){
+                    $('#tablediv').empty();
+                    var table = $('<table></table>').addClass("table");
+
+                    var row = $('<tr></tr>').append('<th>Transaction id</th>').append('<th>Amount</th>').append('<th>date</th>').append('<th>Description</th>').append('<th>Payee</th>');
+                    table.append(row);
+                    for (i in data.result){
+                        var item = data.result[i];
+                        var row = $('<tr></tr>');
+                        for (j in item){
+                            console.log(item[j])
+                            row.append('<td>' + item[j] + '</td>')
+                        }
+                       table.append(row);
+                    }
+                    $('#tablediv').append(table);
+                    alert('ok');
+                }
+                else {
+                    var res = data.ec + ':' + data.em;
+                    alert(res)
+                }
+            }});
+
+    });
+  });
+</script>
+{% endblock %}
+
