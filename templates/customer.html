@@ -1,3 +1,19 @@
+{% extends "customer_layout.html" %}
+{% block body %}
+  <table>
+  <tr>
+    <th>Account_No</th>
+    <th>Balance</th>
+  </tr>
+  {% for account in accounts %}
+  <tr>
+                <td>{{account.num}}</td>
+                <td>{{account.balance}} </td>
+  </tr>
+  {% endfor %}
+  </table>
+{% endblock %}
+=======
 <html>
   <head>
         <title>Customer Console</title>
@@ -28,4 +44,5 @@
 
 
 </html>
+>>>>>>> 9598dd7e793ddbbc9366171d9cac801402b5631d
 

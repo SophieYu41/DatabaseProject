@@ -2,30 +2,30 @@
 {% block body %}
 <div class="input-group">
   <span class="input-group-addon">ID:</span>
-  <input type="text" class="form-control" id="brance_id">
+  <input type="text" class="form-control" id="customer_id">
 </div>
 <div class="input-group">
   <span class="input-group-addon">Name:</span>
-  <input type="text" class="form-control" id="brance_name">
+  <input type="text" class="form-control" id="customer_name">
 </div>
 <div>
-  <button type="button" class"btn btn-primary" id="gobutton" data-toggle="button" aria-pressed="false" autocomplete="off">
-    Query
-  </button
+  <span class="input-group-btn">
+     <button class="btn btn-default" type="button" id='gobutton'>Query</button>
+  </span>
 </div>
 <div id='tablediv'>
 </div>
 <script type"text/javascript">
     $(function () {
         $("#gobutton").click(function(e) {
-            var branch_id_value = $('#brance_id').val()
-            var branch_name_value = $('#brance_name').val()
-            $.ajax({url:'/branch_lookup', data:{branch_id:branch_id_value, abranch_name:branch_name_value}, type:"POST", dataType:'json', success:function(data){
+            var customer_id_value = $('#customer_id').val()
+            var customer_name_value = $('#customer_name').val()
+            $.ajax({url:'/customer_lookup', data:{customer_id:customer_id_value, customer_name:customer_name_value}, type:"POST", dataType:'json', success:function(data){
                 if (data.ec == 200){
                     $('#tablediv').empty();
-                    var table = $('<table></table>').addClass("table");
+                    var table = $('<table></table>');
 
-                    var row = $('<tr></tr>').append('<th>Branch id</th>').append('<th>Branch name</th>').append('<th>Branch address</th>').append('<th>Bank id</th>');
+                    var row = $('<tr></tr>').append('<th>Customer id</th>').append('<th>Customer name</th>').append('<th>Email</th>').append('<th>Phone</th>').append('<th>ssn</th>');
                     table.append(row);
                     for (i in data.result){
                         var item = data.result[i];
