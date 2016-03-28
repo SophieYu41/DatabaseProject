@@ -1,10 +1,6 @@
 {% extends "customer_layout.html" %}
 {% block body %}
 <div>
-    <label for="from">From</label>
-    <input type="text" id="from" name="from" placeholder="YYYY-mm-dd HH:MM:SS eg.2016-02-03 23:32:12">
-    <label for="to">To</label>
-    <input type="text" id="to" name="to" placeholder="YYYY-mm-dd HH:MM:SS eg.2016-02-03 23:32:12">
     <button type="button" class"btn btn-primary" id="querybutton" data-toggle="button" aria-pressed="false" autocomplete="off">
     Query
     </button
@@ -14,9 +10,7 @@
 <script type="text/javascript">
   $(function() {
     $("#querybutton").click(function(e) {
-        var date_beg = $("#from").val()
-        var date_end = $("#to").val()
-        $.ajax({url:'/statement_lookup', data:{from:date_beg, to:date_end}, type:"POST", dataType:'json', success:function(data){
+        $.ajax({url:'/statement_lookup', type:"POST", dataType:'json', success:function(data){
                 if (data.ec == 200){
                     $('#tablediv').empty();
                     var table = $('<table></table>').addClass("table");

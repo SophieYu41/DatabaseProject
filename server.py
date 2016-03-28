@@ -2,8 +2,7 @@
 
 """
 Columbia W4111 Intro to databases
-NAME: Yu Wang  Yuchen Shi
-UNI: yw2783 ys2784
+Author: Yu Wang 
 
 Project application:
 The project is an online bank application which supports operations like transfer, check statements, look up transactions, etc.
@@ -19,7 +18,7 @@ Go to http://localhost:8111 in your browser
 
 """
 
-import os, json
+import os, json, datetime, time, random
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, url_for, render_template, g, redirect, Response, session
@@ -29,17 +28,6 @@ tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
 
 
-#
-# XXX: The URI should be in the format of: 
-#
-#     postgresql://USER:PASSWORD@w4111db.eastus.cloudapp.azure.com/username
-#
-# For example, if you had username ewu2493, password foobar, then the following line would be:
-#
-#     DATABASEURI = "postgresql://ewu2493:foobar@w4111db.eastus.cloudapp.azure.com/ewu2493"
-#
-#DATABASEURI = "sqlite:///test.db"
-
 #Connect to our database build in project part 1 and 2
 DATABASEURI = "postgresql://ys2874:WHPMPK@w4111db.eastus.cloudapp.azure.com/ys2874"
 
@@ -47,33 +35,6 @@ DATABASEURI = "postgresql://ys2874:WHPMPK@w4111db.eastus.cloudapp.azure.com/ys28
 # This line creates a database engine that knows how to connect to the URI above
 #
 engine = create_engine(DATABASEURI)
-
-
-#
-# START SQLITE SETUP CODE
-#
-# after these statements run, you should see a file test.db in your webserver/ directory
-# this is a sqlite database that you can query like psql typing in the shell command line:
-# 
-#     sqlite3 test.db
-#
-# The following sqlite3 commands may be useful:
-# 
-#     .tables               -- will list the tables in the database
-#     .schema <tablename>   -- print CREATE TABLE statement for table
-# 
-# The setup code should be deleted once you switch to using the Part 2 postgresql database
-#
-#engine.execute("""DROP TABLE IF EXISTS test;""")
-#engine.execute("""CREATE TABLE IF NOT EXISTS test (
-#  id serial,
-#  name text
-#);""")
-#engine.execute("""INSERT INTO test(name) VALUES ('grace hopper'), ('alan turing'), ('ada lovelace');""")
-#
-# END SQLITE SETUP CODE
-#
-
 
 
 @app.before_request
@@ -116,6 +77,11 @@ def teardown_request(exception):
 # see for routing: http://flask.pocoo.org/docs/0.10/quickstart/#routing
 # see for decorators: http://simeonfranklin.com/blog/2012/jul/1/python-decorators-in-12-steps/
 #
+
+#
+# This part validate user login information and check if the session is still valid
+#
+
 @app.route('/')
 def index():
     """
@@ -135,36 +101,15 @@ def index():
     else:
         return render_template('index.html')
 
-  # DEBUG: this is debugging code to see what request looks like
-  #
-  # Flask uses Jinja templates, which is an extension to HTML where you can
-  # pass data to a template and dynamically generate HTML based on the data
-  # (you can think of it as simple PHP)
-  # documentation: https://realpython.com/blog/python/primer-on-jinja-templating/
-  #
-  # You can see an example template in templates/index.html
-  #
-  # context are the variables that are passed to the template.
-  # for example, "data" key in the context variable defined below will be 
-  # accessible as a variable in index.html:
-  #
-  #     # will print: [u'grace hopper', u'alan turing', u'ada lovelace']
-  #     <div>{{data}}</div>
-  #     
-  #     # creates a <div> tag for each element in data
-  #     # will print: 
-  #     #
-  #     #   <div>grace hopper</div>
-  #     #   <div>alan turing</div>
-  #     #   <div>ada lovelace</div>
-  #     #
-  #     {% for n in data %}
-  #     <div>{{n}}</div>
-  #     {% endfor %}
-  #
-  #
+
+"""
+Customer MODULE
+
+"""
 
 #
+# SQL for customer page
+# display the debit account_no and current balance
 #
 
 @app.route('/customer')
@@ -184,6 +129,9 @@ def customer():
     return render_template("customer.html", customer = {'name':name}, accounts = accounts)
     #return render_template("customer_layout.html", final_res)
 
+# Sub-page for user statement
+# redirect user to statement page when subpage is selected
+
 @app.route('/statement')
 def statement(begdate=None, enddate=None):
     if session['usertype'] != 'customer':
@@ -195,6 +143,11 @@ def statement(begdate=None, enddate=None):
     else:
         return redirect(url_for("login"))
 
+#
+# SQL for statement lookup
+# diplay customer statement (if any in the database, might be empty)
+# 
+
 @app.route('/statement_lookup', methods=['POST'])
 def statement_lookup():
     if session['usertype'] != 'customer':
@@ -202,13 +155,11 @@ def statement_lookup():
     if 'userid' in session and 'username' in session:
         cid = session['userid']
         name = session['username']
-        date_beg = request.form['from']
-        date_end = request.form['to']
         try:
-            cursor = g.conn.execute("SELECT sid, time_period, begin_balance, end_balance FROM Statements WHERE cid = %s AND time_period BETWEEN %s AND %s", cid, date_beg, date_end)
-            statments = []
+            cursor = g.conn.execute("SELECT sid, time_period, begin_balance, end_balance FROM Statements WHERE cid = %s ", cid)
+            statements = []
             for result in cursor:
-                statments.append([
+                statements.append([
                     result[0],
                     result[1],
                     result[2],
@@ -223,6 +174,9 @@ def statement_lookup():
     else:
         return json.dumps({'ec':400, 'em':'notlogin'})
 
+# Sub-page for transfer money page
+# redirect user to transfer money page page when subpage is selected
+
 @app.route('/transfer')
 def transfer():
     if session['usertype'] != 'customer':
@@ -234,49 +188,52 @@ def transfer():
     else:
         return redirect(url_for("login"))
 
+#
+# SQL for transfer transaction
+#   1. modify customer balance for both accounts related
+#   2. Insert new record in transaction table
+# 
+
 @app.route('/transfertrade', methods=['POST'])
 def transfertrade():
     if session['usertype'] != 'customer':
         return json.dumps({'ec':400, 'em':'notlogin'})
     if 'userid' in session and 'username' in session:
-        cid = session['userid']
-        name = session['username']
-        target = request.form['target']
-        amount = float(request.form['amount'])
-        today_date = datetime.datetime.strftime('%Y-%m-%d')
-        
         try:
-            g.conn.execute("INSERT INTO transactions (amount, date, description, payee) values (?,?,?,?) ", [str(0 - amount), today_date, 'transfer', cid])
-            g.conn.commit()
-
+            cid = session['userid']
+            name = session['username']
+            target = request.form['target']
+            amount = float(request.form['amount'])
+            today_date = datetime.datetime.today().strftime('%Y-%m-%d')
+            trade_no = cid.split('_')[0] + str(int(time.time())) + str(random.randrange(1000, 9999))
+            g.conn.execute("INSERT INTO transactions (tran_no, amount, date, description, payee) values (%s, %s, %s, %s, %s) ", trade_no, 0 - amount, today_date, 'transfer', cid)
             source_balance = None
-            source_acc_no = None
-            cursor = g.conn.execute("SELECT acc_no, balance FROM debit_accounts WHERE cid = %s", cid)
+            source_debit_no = None
+            cursor = g.conn.execute("SELECT debit_no, balance FROM debit_accounts WHERE cid = %s", cid)
             for result in cursor:
-                source_acc_no = result[0]
+                source_debit_no = result[0]
                 source_balance = result[1]
             cursor.close()
             target_balance = None
-            target_acc_no = None
-            cursor = g.conn.execute("SELECT acc_no, balance FROM debit_accounts WHERE cid = %s", target)
+            target_debit_no = None
+            cursor = g.conn.execute("SELECT debit_no, balance FROM debit_accounts WHERE cid = %s", target)
             for result in cursor:
-                target_acc_no = result[0]
+                target_debit_no = result[0]
                 target_balance = result[1]
             cursor.close()
-            if not (target_balance and target_acc_no):
+            if not (target_balance and target_debit_no):
                 return json.dumps({'ec':405, 'em':'target no exist'})
-            if not (source_balance and tsource_acc_no):
+            if not (source_balance and source_debit_no):
                 return json.dumps({'ec':405, 'em':'account not valid'})
             if (float(source_balance) - amount) < 0:
                 return json.dumps({'ec':407, 'em':'no enough money'})
             try:
-                g.conn.execute("UPDATE  debit_accounts SET balance = (balance + %s) WHERE acc_no = %s", str(amount), target_acc_no)
-                g.conn.commit()
-                g.conn.execute("UPDATE  debit_accounts SET balance = (balance - %s) WHERE acc_no = %s", str(amount), source_acc_no)
-                g.conn.commit()
-                res_data = {'ec':200, 'em':'success', 'result': statements}
+                g.conn.execute("UPDATE  debit_accounts SET balance = (balance + %s) WHERE debit_no = %s", str(amount), target_debit_no)
+                g.conn.execute("UPDATE  debit_accounts SET balance = (balance - %s) WHERE debit_no = %s", str(amount), source_debit_no)
+                res_data = {'ec':200, 'em':'success'}
                 return json.dumps(res_data)
             except:
+                traceback.print_exc()
                 return json.dumps({'ec':409, 'em':'write error'})
         except:
             traceback.print_exc()
@@ -284,7 +241,9 @@ def transfertrade():
     else:
         return json.dumps({'ec':400, 'em':'notlogin'})
 
- 
+# Sub-page for customer profile page
+# redirect user to profile page when subpage is selected
+
 @app.route('/profile')
 def profile():
     if session['usertype'] != 'customer':
@@ -292,14 +251,19 @@ def profile():
     if 'userid' in session and 'username' in session:
         cid = session['userid']
         name = session['username']
-        cursor = g.conn.execute("SELECT email, phone, ssn FROM Customers WHERE cid = %s", cid)
+        cursor = g.conn.execute("SELECT email, phone, ssn, password FROM Customers WHERE cid = %s", cid)
         for result in cursor:
             email = result[0]
             phone = result[1]
             ssn = result[2]
-        return render_template("profile.html", customer = {'name':name},  profile={'name':name, 'email':email, 'phone':phone, 'ssn':ssn})
+            password = result[3]
+        return render_template("profile.html", customer = {'name':name},  profile={'name':name, 'email':email, 'phone':phone, 'ssn':ssn, 'password':password})
     else:
         return render_template('index.html')
+#
+# SQL for transfer transaction
+# update user information according to user input
+#
 
 @app.route('/profileedit', methods=['POST'])
 def profileedit():
@@ -314,13 +278,24 @@ def profileedit():
         update_ssn = request.form['ssn']
         update_password = request.form['password']
         try:
-            g.conn.execute("UPDATE  customers SET name = %s, email = %s, phone = %s, ssn = %s, password = %s WHERE acc_no = %s", update_name, update_email, update_phone, update_ssn, update_password)
-            g.conn.commit()
+            g.conn.execute("UPDATE  customers SET name = %s, email = %s, phone = %s, ssn = %s, password = %s WHERE cid = %s", update_name, update_email, update_phone, update_ssn, update_password, cid)
         except:
+            traceback.print_exc()
             return {'ec':402, 'em':'update error'}
     else:
         return {'ec':400, 'em':'nologin'}
 
+"""
+ADMIN MODULE
+"""
+
+#
+# SQL for admin page
+# display the aggregation information for currentdatabase
+#   1. total number of branch
+#   2. total number of customers
+#   3. total number of transactions
+#
 
 @app.route('/admin')
 def admin():
@@ -347,6 +322,9 @@ def admin():
     else:
         return render_template('index.html')
 
+# Sub-page for admin branch page
+# redirect to branch page when subpage is selected
+
 @app.route('/branch')
 def branch():
     if session['usertype'] != 'admin':
@@ -355,6 +333,11 @@ def branch():
         return render_template("branch.html")
     else:
         return render_template('index.html')
+
+#
+# SQL for branch lookup page
+# display the branch information according to either branch_id or branch_name
+# 
 
 @app.route('/branch_lookup', methods=['POST'])
 def branch_lookup():
@@ -365,18 +348,22 @@ def branch_lookup():
         branchname = request.form['branch_name']
         where_sentence = ''
         if branchid:
-            where_sentence = 'WHERE branch_id=%s'% (branchid)
+            where_sentence = "WHERE branch_id='%s'"% (branchid)
         elif branchname:
-            where_sentence = 'WHERE name LIKE %s' ('%' + branchname +'%')
+            where_sentence = "WHERE name LIKE %s" %("'%%" + branchname +"%%'")
         try:
-            cursor = g.conn.execute("SELECT branch_id, name, address, bid FROM branches %s", where_sentence)
+            print 'SQL:________'
+            sql = '''
+                SELECT branch_id, name, address FROM branches %s
+            ''' %(where_sentence)
+            print sql
+            cursor = g.conn.execute(sql)
             branches = []
             for result in cursor:
                 branches.append([
                     result[0],
                     result[1],
                     result[2],
-                    result[3],
                 ])
             cursor.close()
             res_data = {'ec':200, 'em':'success', 'result': branches}
@@ -395,6 +382,8 @@ def branch_lookup():
   #  names.append(result[1])  # can also be accessed using result[0]
   #cursor.close()
 
+# Sub-page for admin adding a new customer
+# redirect to add-new-customer page when subpage is selected
 
 @app.route('/addnew')
 def addnew():
@@ -405,24 +394,47 @@ def addnew():
     else:
         return render_template('index.html')
 
+
+#
+# SQL for add new customer page
+# insert into Customer table with the parameter from input
+# 
+
 @app.route('/addcustomer', methods=['POST'])
 def addcustomer():
     if session['usertype'] != 'admin':
         return json.dumps({'ec':400, 'em':'nologin'})
     if 'userid' in session and 'username' in session:
+        new_cid = request.form['cid']
         new_name = request.form['name']
         new_email = request.form['email']
         new_phone = request.form['phone']
         new_ssn = request.form['ssn']
         new_password = request.form['password']
+        print new_cid
+        print new_name
+        print new_email
+        print new_phone
+        print new_ssn
+        print new_password
         try:
-            g.conn.execute("INSERT INTO customers (name, email, phone, ssn, password) values (?,?,?,?,?) ", [new_name, new_email, new_phone, new_ssn, new_password])
-            g.conn.commit()
+            sql = '''
+                INSERT INTO customers (cid, name, email, phone, ssn, password) values ('%s', '%s','%s','%s','%s','%s') 
+            ''' %(str(new_cid), str(new_name), str(new_email), str(new_phone), str(new_ssn), str(new_password))
+            print 'SQL:------'
+            print sql
+            g.conn.execute(sql)
             return json.dumps( {'ec':200, 'em':'success'})
         except:
+            traceback.print_exc()
             return json.dumps( {'ec':404, 'em':'data writing error'})
     else:
         return json.dumps({'ec':400, 'em':'nologin'})
+
+#
+# Subpage and SQL for search customer page
+# display corresponding customer information according to input parameter
+# 
 
 @app.route('/searchcustomer')
 def searchcustomer():
@@ -437,11 +449,11 @@ def customer_lookup():
         customername = request.form['customer_name']
         where_sentence = ''
         if customerid:
-            where_sentence = 'WHERE cid=%s'% (customerid)
+            where_sentence = "WHERE cid='%s'"% (customerid)
         elif customername:
-            where_sentence = 'WHERE name LIKE %s' ('%' + customername +'%')
+            where_sentence = "WHERE name LIKE %s" % ("'%%" + customername +"%%'")
         try:
-            cursor = g.conn.execute("SELECT cid, name, email, phone, ssn FROM branches %s", where_sentence)
+            cursor = g.conn.execute("SELECT cid, name, email, phone, ssn FROM Customers " + where_sentence)
             customers = []
             for result in cursor:
                 customers.append([
@@ -460,7 +472,11 @@ def customer_lookup():
     else:
         return {'ec':400, 'em':'nologin'}
 
-
+#
+# Subpage and SQL for transaction page
+# display corresponding transaction information
+# Input could either be date, transaction type  or description
+#
 
 @app.route('/transaction')
 def transaction(begdate=None, enddate=None):
@@ -481,17 +497,28 @@ def transaction_lookup():
         date_beg = request.form['from']
         date_end = request.form['to']
         transaction_type = request.form['type']
-        where_sentence = "WHERE date BETWEEN %s AND %s" %(date_beg, date_end)
-        if transaction_type:
-            where_sentence += 'AND description = %s' %(transaction_type)
+        where_sentence = 'WHERE'
+        if date_beg and date_end:
+            try:
+                date_beg = datetime.datetime.strptime(date_beg, '%Y-%m-%d').strftime('%Y-%m-%d')
+                date_end = datetime.datetime.strptime(date_end, '%Y-%m-%d').strftime('%Y-%m-%d')
+            except:
+                traceback.print_exc()
+                return json.dumps({'ec':405, 'em':'datetime format wrong: YYYY-mm-dd'})
+            where_sentence += " date BETWEEN '%s' AND '%s'" %(min(str(date_beg), str(date_end)), max(str(date_beg), str(date_end)))
+            if transaction_type:
+                where_sentence += " AND description = '%s'" %(transaction_type)
+        elif transaction_type:
+            where_sentence += " description = '%s'" %(transaction_type)
         try:
-            cursor = g.conn.execute("SELECT tran_no, amount, date, description, payee FROM transactions %s", where_sentence)
+            if where_sentence == 'WHERE': where_sentence = ''
+            cursor = g.conn.execute("SELECT tran_no, amount, date, description, payee FROM transactions " + where_sentence)
             transactiones = []
             for result in cursor:
                 transactiones.append([
                     result[0],
                     result[1],
-                    result[2],
+                    result[2].strftime('%Y-%m-%d'),
                     result[3],
                     result[4],
                 ])
@@ -505,15 +532,12 @@ def transaction_lookup():
         return json.dumps({'ec':400, 'em':'notlogin'})
 
 
+#
+# User login validation
+# Identify user entity, distribu user to their correspoding page
+# Admin page or Customer page
+#
 
-# Example of adding new data to the database
-#@app.route('/add', methods=['POST'])
-#def add():
-#  name = request.form['name']
-#  g.conn.execute('INSERT INTO test VALUES (NULL, ?)', name)
-#  return redirect('/')
-
-#User login validation
 @app.route('/login', methods=['POST'])
 def login():
     post_name = request.form['name']
@@ -545,6 +569,7 @@ def logout():
     session.pop('usertype', None)
     return redirect(url_for('index'))
 
+#*************************************************
 # Main funciton
 
 app.secret_key = 'A0Zrjxj/3yX R~XHH!jwd]LWX/,?RT'

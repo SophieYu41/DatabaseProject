@@ -20,12 +20,12 @@
         $("#gobutton").click(function(e) {
             var branch_id_value = $('#brance_id').val()
             var branch_name_value = $('#brance_name').val()
-            $.ajax({url:'/branch_lookup', data:{branch_id:branch_id_value, abranch_name:branch_name_value}, type:"POST", dataType:'json', success:function(data){
+            $.ajax({url:'/branch_lookup', data:{branch_id:branch_id_value, branch_name:branch_name_value}, type:"POST", dataType:'json', success:function(data){
                 if (data.ec == 200){
                     $('#tablediv').empty();
                     var table = $('<table></table>').addClass("table");
 
-                    var row = $('<tr></tr>').append('<th>Branch id</th>').append('<th>Branch name</th>').append('<th>Branch address</th>').append('<th>Bank id</th>');
+                    var row = $('<tr></tr>').append('<th>Branch id</th>').append('<th>Branch name</th>').append('<th>Branch address</th>');
                     table.append(row);
                     for (i in data.result){
                         var item = data.result[i];

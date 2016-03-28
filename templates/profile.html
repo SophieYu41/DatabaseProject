@@ -2,23 +2,23 @@
 {% block body %}
 <div class="input-group">
   <span class="input-group-addon">Name:</span>
-  <input type="text" class="form-control" placeholder=" {{ profile.name}} " id="name">
+  <input type="text" class="form-control" defaultValue=" {{ profile.name}} " placeholder=" {{ profile.name}} " id="name">
 </div>
 <div class="input-group">
   <span class="input-group-addon">Email:</span>
-  <input type="text" class="form-control" placeholder=" {{ profile.email}} " id="email">
+  <input type="text" class="form-control" defaultValue=" {{ profile.email}} "  placeholder=" {{ profile.email}} " id="email">
 </div>
 <div class="input-group">
   <span class="input-group-addon">Phone:</span>
-  <input type="text" class="form-control" placeholder=" {{ profile.phone}} " id="phone">
+  <input type="text" class="form-control" defaultValue=" {{ profile.phone}} " placeholder=" {{ profile.phone}} " id="phone">
 </div>
 <div class="input-group">
   <span class="input-group-addon">ssn:</span>
-  <input type="text" class="form-control" placeholder=" {{ profile.ssn}} " id="ssn">
+  <input type="text" class="form-control" defaultValue=" {{ profile.ssn}} " placeholder=" {{ profile.ssn }} " id="ssn">
 </div>
 <div class="input-group">
   <span class="input-group-addon">Change Password:</span>
-  <input type="text" class="form-control"  id="password">
+  <input type="password" class="form-control" defaultValue=" {{ profile.password }} " placeholder=" {{ profile.password }} " id="password">
 </div>
 <div>
   <span class="input-group-btn">

@@ -23,7 +23,7 @@
             $.ajax({url:'/customer_lookup', data:{customer_id:customer_id_value, customer_name:customer_name_value}, type:"POST", dataType:'json', success:function(data){
                 if (data.ec == 200){
                     $('#tablediv').empty();
-                    var table = $('<table></table>');
+                    var table = $('<table></table>').addClass("table");
 
                     var row = $('<tr></tr>').append('<th>Customer id</th>').append('<th>Customer name</th>').append('<th>Email</th>').append('<th>Phone</th>').append('<th>ssn</th>');
                     table.append(row);
