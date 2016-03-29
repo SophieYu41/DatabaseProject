@@ -145,7 +145,7 @@ def statement(begdate=None, enddate=None):
 
 #
 # SQL for statement lookup
-# diplay customer statement (if any in the database, might be empty)
+# look up for transactions/statements in database related to the account
 # 
 
 @app.route('/statement_lookup', methods=['POST'])
@@ -156,16 +156,27 @@ def statement_lookup():
         cid = session['userid']
         name = session['username']
         try:
-            cursor = g.conn.execute("SELECT sid, time_period, begin_balance, end_balance FROM Statements WHERE cid = %s ", cid)
-            statements = []
+           # cursor = g.conn.execute("SELECT sid, time_period, begin_balance, end_balance FROM Statements WHERE cid = %s ", cid)
+           # statements = []
+           # for result in cursor:
+           #     statements.append([
+           #         result[0],
+           #         result[1],
+           #         result[2],
+           #         result[3],
+           #     ])
+            cursor = g.conn.execute("select name, transactions.tran_no, amount, date, description, payee from customers, debit_owns, debit_conducts, transactions where customers.cid=debit_owns.cid and debit_owns.debit_no=debit_conducts.debit_no and debit_conducts.tran_no=transactions.tran_no and customers.cid=%s", cid)
+	    statements = []
             for result in cursor:
                 statements.append([
                     result[0],
                     result[1],
                     result[2],
-                    result[3],
+                    result[3].strftime('%Y-%m-%d'),
+                    result[4],
+                    result[5],
                 ])
-            cursor.close()
+	    cursor.close()
             res_data = {'ec':200, 'em':'success', 'result': statements}
             return json.dumps(res_data)
         except:
@@ -203,6 +214,7 @@ def transfertrade():
             cid = session['userid']
             name = session['username']
             target = request.form['target']
+	    print 'transfer',target
             amount = float(request.form['amount'])
             today_date = datetime.datetime.today().strftime('%Y-%m-%d')
             trade_no = cid.split('_')[0] + str(int(time.time())) + str(random.randrange(1000, 9999))
@@ -216,7 +228,7 @@ def transfertrade():
             cursor.close()
             target_balance = None
             target_debit_no = None
-            cursor = g.conn.execute("SELECT debit_no, balance FROM debit_accounts WHERE cid = %s", target)
+            cursor = g.conn.execute("SELECT debit_no, balance FROM debit_accounts WHERE debit_no = %s", target)
             for result in cursor:
                 target_debit_no = result[0]
                 target_balance = result[1]
@@ -295,6 +307,7 @@ ADMIN MODULE
 #   1. total number of branch
 #   2. total number of customers
 #   3. total number of transactions
+#   4. list the most valuable customer--customer with the most number of transactions
 #
 
 @app.route('/admin')
@@ -305,6 +318,7 @@ def admin():
         branch = None
         customer = None
         transaction = None
+	valuableCus= None
         cursour = g.conn.execute("SELECT COUNT(DISTINCT branch_id) FROM branches")
         for c in cursour:
             branch = c[0]
@@ -317,8 +331,12 @@ def admin():
         for c in cursour:
             transaction = c[0]
         cursour.close()
-        
-        return render_template("admin.html", branch=branch, customer=customer, transaction=transaction)
+	cursour = g.conn.execute("select name from Customers,debit_owns d where d.cid = Customers.cid and d.debit_no IN (select temp.debit_no from (select count(debit_no),debit_no from debit_conducts group by debit_no order by count DESC) temp limit 1 );") 
+        for c in cursour:
+             valuableCus = c[0]
+        cursour.close()  
+      
+        return render_template("admin.html", branch=branch, customer=customer, transaction=transaction, valuableCus=valuableCus)
     else:
         return render_template('index.html')
 
@@ -374,13 +392,6 @@ def branch_lookup():
     else:
         return {'ec':400, 'em':'nologin'}
 
-
-  #name = request.form['name']
-  #cursor = g.conn.execute('select * from branch where name = %s or name like %s\%', name)
-  #names = []
-  #for result in cursor:
-  #  names.append(result[1])  # can also be accessed using result[0]
-  #cursor.close()
 
 # Sub-page for admin adding a new customer
 # redirect to add-new-customer page when subpage is selected
@@ -498,6 +509,8 @@ def transaction_lookup():
         date_end = request.form['to']
         transaction_type = request.form['type']
         where_sentence = 'WHERE'
+	#if query by date
+
         if date_beg and date_end:
             try:
                 date_beg = datetime.datetime.strptime(date_beg, '%Y-%m-%d').strftime('%Y-%m-%d')
@@ -506,6 +519,8 @@ def transaction_lookup():
                 traceback.print_exc()
                 return json.dumps({'ec':405, 'em':'datetime format wrong: YYYY-mm-dd'})
             where_sentence += " date BETWEEN '%s' AND '%s'" %(min(str(date_beg), str(date_end)), max(str(date_beg), str(date_end)))
+
+            #if query by transaction type
             if transaction_type:
                 where_sentence += " AND description = '%s'" %(transaction_type)
         elif transaction_type:
@@ -569,8 +584,9 @@ def logout():
     session.pop('usertype', None)
     return redirect(url_for('index'))
 
-#*************************************************
+"""
 # Main funciton
+"""
 
 app.secret_key = 'A0Zrjxj/3yX R~XHH!jwd]LWX/,?RT'
 

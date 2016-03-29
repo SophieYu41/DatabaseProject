@@ -15,8 +15,9 @@
                     $('#tablediv').empty();
                     var table = $('<table></table>').addClass("table");
 
-                    var row = $('<tr></tr>').append('<th>Sid</th>').append('<th>Time period</th>').append('<th>Begin Balance</th>').append('<th>End Balance</th>');
-                    table.append(row);
+//                    var row = $('<tr></tr>').append('<th>Sid</th>').append('<th>Time period</th>').append('<th>Begin Balance</th>').append('<th>End Balance</th>');
+		var row = $('<tr></tr>').append('<th>Name</th>').append('<th>Transaction No</th>').append('<th>Amout</th>').append('<th>Date</th>').append('<th>Description</th>').append('<th>PayTo</th>');  
+                  table.append(row);
                     for (i in data.result){
                         var item = data.result[i];
                         var row = $('<tr></tr>');

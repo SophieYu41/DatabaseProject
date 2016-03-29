@@ -1,13 +1,16 @@
 {% extends "admin_layout.html" %}
 {% block body %}
 <div>
-              Branch:  {{branch}}
+	<h3> Branch:  {{branch}} </h3>
 </div>
 <div>
-              Customer:  {{customer}}
+        <h3> Customer:  {{customer}}  </h3> 
 </div>
 <div>
-              Transaction {{transaction}}
+        <h3> Transaction: {{transaction}} </h3>
+</div>
+<div>
+        <h3> Most Valuable Customer(max No of trans): {{valuableCus}} </h3>
 </div>
 {% endblock %}
 
